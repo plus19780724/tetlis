@@ -4,7 +4,7 @@ HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>テトリス（画面密着＆上部ハイスコア版）</title>
+    <title>テトリス（連続制限システム搭載版）</title>
     <style>
         body { 
             background: #222; color: white; text-align: center; font-family: sans-serif; 
@@ -12,7 +12,7 @@ HTML
         }
         h1 { font-size: 18px; margin: 2px 0; }
         
-        /* 🏆 画面上部の最高記録（横並び） */
+        /* 🏆 画面上部の最高記録 */
         .highscore-header {
             display: flex; justify-content: center; gap: 10px;
             background: #111; border: 1px solid #ffcd56; border-radius: 5px;
@@ -21,7 +21,7 @@ HTML
         .hs-item { color: #ffcd56; font-weight: bold; }
         .hs-val { color: #fff; }
 
-        /* 🖥️ ゲーム画面エリア（無駄な隙間を徹底排除） */
+        /* 🖥️ ゲーム画面エリア */
         .game-container { display: flex; justify-content: center; align-items: flex-start; margin-bottom: 0; }
         canvas { background: #111; border: 3px solid #fff; max-width: 100%; height: auto; }
         
@@ -32,13 +32,13 @@ HTML
         .sub-canvas { background: #111; border: 2px solid #fff; margin-bottom: 4px; width: 100%; height: auto; }
         .pause-btn { width: 100%; padding: 4px; font-size: 11px; font-weight: bold; background-color: #36a2eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
 
-        /* 📱 スマホ用コントローラー（画面のすぐ下に配置されるようマージンを最小に） */
+        /* 📱 スマホ用コントローラー */
         .controller { 
             display: grid; 
             grid-template-columns: 1fr 1fr 1fr; 
             gap: 8px; 
             max-width: 360px; 
-            margin: 5px auto 0 auto; /* 5pxまで縮めて画面と密着 */
+            margin: 5px auto 0 auto; 
             padding: 0 5px;
         }
         .btn { 
@@ -71,7 +71,6 @@ HTML
 
     <h1>TETRIS TECHNICAL</h1>
     
-    <!-- 🏆 画面上部に引っ越した最高記録 -->
     <div class="highscore-header">
         <div>👑 最高記録 ➔</div>
         <div class="hs-item">ライン: <span class="hs-val" id="high-score">0</span></div>
@@ -80,7 +79,6 @@ HTML
     </div>
     
     <div class="game-container">
-        <!-- 👈 左側パネル（ご指定通り：HOLD と スピード のみ） -->
         <div class="side-panel">
             <div class="info-title">HOLD</div>
             <canvas id="hold-canvas" class="sub-canvas" width="100" height="100"></canvas>
@@ -91,10 +89,8 @@ HTML
             </div>
         </div>
 
-        <!-- 🕹️ メイン画面 -->
         <canvas id="canvas" width="240" height="400"></canvas>
         
-        <!-- 👉 右側パネル（NEXT、ライン、テトリス数、T-SPIN数、ポーズ） -->
         <div class="side-panel">
             <div class="info-title">NEXT</div>
             <canvas id="next-canvas" class="sub-canvas" width="100" height="360"></canvas>
@@ -112,19 +108,15 @@ HTML
         </div>
     </div>
 
-    <!-- 📱 画面のすぐ近くに配置されたコントローラー -->
     <div class="controller">
-        <!-- 1段目: [← 移動] [HOLD] [移動 →] -->
         <button class="btn btn-move" id="btn-left">← 移動</button>
         <button class="btn btn-hold" id="btn-hold">HOLD</button>
         <button class="btn btn-move" id="btn-right">移動 →</button>
         
-        <!-- 2段目: [↺ 左回転] [（間は空白）] [↻ 右回転] -->
         <button class="btn btn-rot-l" id="btn-rot-l">↺ 左回転</button>
         <div class="empty-space"></div> 
         <button class="btn btn-rot-r" id="btn-rot-r">↻ 右回転</button>
         
-        <!-- 3段目: [長押し急降下] -->
         <button class="btn btn-down" id="btn-down">長押しで急降下 👇</button>
     </div>
 
@@ -192,6 +184,10 @@ let pX = 0;
 let pY = 0;
 let nextQueue = [];
 
+// 💡 連続チェック用の履歴変数（直前のブロックIDと、その連続回数）
+let lastPickedId = null;
+let consecutiveCount = 0;
+
 function copyGrid(grid) {
     let newGrid = [];
     for (let i = 0; i < grid.length; i++) {
@@ -201,11 +197,41 @@ function copyGrid(grid) {
     return newGrid;
 }
 
+// 💡 【新機能】同じブロックが3連続しないように制御してランダム抽選する関数
+function getRandomTypeWithLimit() {
+    let randIndex;
+    let chosenType;
+    
+    // 最大10回まで再抽選をトライする（無限ループ防止の安全策）
+    for (let i = 0; i < 10; i++) {
+        randIndex = Math.floor(Math.random() * TYPES.length);
+        chosenType = TYPES[randIndex];
+        
+        // 直前と同じIDで、かつすでに2回連続している場合は、やり直す！
+        if (chosenType.id === lastPickedId && consecutiveCount >= 2) {
+            continue; 
+        }
+        break; // 条件クリアならループを抜ける
+    }
+    
+    // 連続回数のカウンタを更新
+    if (chosenType.id === lastPickedId) {
+        consecutiveCount++;
+    } else {
+        lastPickedId = chosenType.id;
+        consecutiveCount = 1;
+    }
+    
+    return chosenType;
+}
+
 function initNextQueue() {
     nextQueue = [];
+    // 最初の履歴をリセット
+    lastPickedId = null;
+    consecutiveCount = 0;
     for (let i = 0; i < 5; i++) {
-        let randIndex = Math.floor(Math.random() * TYPES.length);
-        nextQueue.push(TYPES[randIndex]);
+        nextQueue.push(getRandomTypeWithLimit());
     }
 }
 
@@ -214,8 +240,10 @@ function spawnPiece() {
     lastActionIsRotate = false;
     if (nextQueue.length === 0) initNextQueue();
     let nextType = nextQueue.shift();
-    let randIndex = Math.floor(Math.random() * TYPES.length);
-    nextQueue.push(TYPES[randIndex]);
+    
+    // キューの末尾に新しいブロックを1つ補給（ここも制限付き抽選）
+    nextQueue.push(getRandomTypeWithLimit());
+    
     setNewPiece(nextType);
 }
 
