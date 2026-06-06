@@ -4,56 +4,62 @@ HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>テトリス（スマホ操作完全修正版）</title>
+    <title>テトリス（T-SPIN＆ハイスコア・スマホ＆PC完全版）</title>
     <style>
         body { 
             background: #222; color: white; text-align: center; font-family: sans-serif; 
             margin: 0; padding: 10px; user-select: none; -webkit-user-select: none;
         }
         h1 { font-size: 20px; margin: 5px 0; }
-        .instructions { font-size: 12px; color: #aaa; margin: 0 0 10px 0; }
+        .instructions { font-size: 11px; color: #aaa; margin: 0 0 10px 0; }
         
         .game-container { display: flex; justify-content: center; align-items: flex-start; position: relative; }
         canvas { background: #111; border: 3px solid #fff; max-width: 100%; height: auto; }
         
-        .side-panel { margin: 0 10px; text-align: left; background: #333; padding: 10px; border-radius: 5px; width: 85px; }
+        .side-panel { margin: 0 8px; text-align: left; background: #333; padding: 10px; border-radius: 5px; width: 85px; }
         .info-title { font-size: 11px; color: #aaa; margin-bottom: 2px; }
-        .info-value { font-size: 16px; font-weight: bold; color: #ff4757; margin-bottom: 8px; }
+        .info-value { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 8px; }
+        .info-value.highscore { color: #ffcd56; } /* 金色 */
         .sub-canvas { background: #111; border: 2px solid #fff; margin-bottom: 8px; width: 100%; height: auto; }
         .pause-btn { width: 100%; padding: 5px; font-size: 12px; font-weight: bold; background-color: #36a2eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
 
+        /* 📱 スマホ用ボタン配置（左右回転・左右長押しに最適化） */
         .controller { 
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; 
-            max-width: 360px; margin: 20px auto 0 auto; padding: 0 10px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; 
+            max-width: 360px; margin: 15px auto 0 auto; padding: 0 5px;
         }
         .btn { 
-            background: #444; color: white; border: none; padding: 15px 0; 
-            font-size: 18px; font-weight: bold; border-radius: 10px; 
+            background: #444; color: white; border: none; padding: 12px 0; 
+            font-size: 16px; font-weight: bold; border-radius: 10px; 
             box-shadow: 0 4px #222; cursor: pointer; -webkit-tap-highlight-color: transparent;
         }
         .btn:active { background: #666; transform: translateY(2px); box-shadow: 0 2px #222; }
-        .btn-hold { background: #ff9f40; }
-        .btn-rotate { background: #9966ff; }
+        .btn-hold { background: #ff9f40; grid-column: span 2; }
+        .btn-rot-l { background: #2ed573; }
+        .btn-rot-r { background: #9966ff; }
+        .btn-down { background: #555; grid-column: span 4; padding: 12px 0; font-size: 16px; }
         
         @media (min-width: 600px) {
-            h1 { font-size: 28px; }
-            .instructions { font-size: 14px; }
-            .side-panel { width: 140px; padding: 15px; }
-            .info-title { font-size: 16px; }
-            .info-value { font-size: 24px; }
-            .controller { max-width: 500px; }
+            h1 { font-size: 26px; }
+            .instructions { font-size: 13px; }
+            .side-panel { width: 130px; padding: 12px; }
+            .info-title { font-size: 14px; }
+            .info-value { font-size: 20px; }
+            .controller { max-width: 450px; }
         }
     </style>
 </head>
 <body>
 
-    <h1>TETRIS MOBILE</h1>
-    <p class="instructions">PC：←→移動 / ↓落下 / ↑回転 / [Space] HOLD / [P] ポーズ</p>
+    <h1>TETRIS ULTIMATE</h1>
+    <p class="instructions">PC: ←→移動 / ↓落下 / Z左回転 / X右回転 / [Space]HOLD / [P]ポーズ</p>
     
     <div class="game-container">
         <div class="side-panel">
             <div class="info-title">HOLD</div>
             <canvas id="hold-canvas" class="sub-canvas" width="100" height="100"></canvas>
+            <div class="info-title" style="margin-top:15px;">最高記録</div>
+            <div class="info-value highscore" id="high-score">0</div>
         </div>
 
         <canvas id="canvas" width="240" height="400"></canvas>
@@ -71,13 +77,11 @@ HTML
 
     <div class="controller">
         <button class="btn btn-hold" id="btn-hold">HOLD</button>
-        <button class="btn" id="btn-left">←</button>
-        <button class="btn" id="btn-right">→</button>
-        <button class="btn btn-rotate" id="btn-up">回転</button>
-        <div style="grid-column: span 4; display: grid; grid-template-columns: 1fr; margin-top: 5px;">
-            <!-- 💡 押しっぱなし感が伝わりやすいよう文言を少し調整しました -->
-            <button class="btn" id="btn-down" style="background: #555; padding: 15px 0;">長押しで急降下</button>
-        </div>
+        <button class="btn btn-rot-l" id="btn-rot-l">↺ 左回転</button>
+        <button class="btn btn-rot-r" id="btn-rot-r">↻ 右回転</button>
+        <button class="btn" id="btn-left">← 移動</button>
+        <button class="btn" id="btn-right">移動 →</button>
+        <button class="btn btn-down" id="btn-down">長押しで急降下 👇</button>
     </div>
 
 <script>
@@ -102,6 +106,9 @@ for (let r = 0; r < ROWS; r++) {
 }
 
 let linesCleared = 0;
+let highScore = localStorage.getItem('tetris_high_score') ? parseInt(localStorage.getItem('tetris_high_score')) : 0;
+document.getElementById('high-score').textContent = highScore;
+
 let currentInterval = 1000; 
 let gameTimer = null;
 let isPaused = false;
@@ -111,12 +118,14 @@ let holdColor = '';
 let holdBlockId = null;    
 let canHold = true;        
 
-let tetrisTextTimer = 0; 
+let specialText = ""; // "TETRIS!" or "T-SPIN!"
+let textTimer = 0; 
+let lastActionIsRotate = false; // Tスピン判定用フラグ
 
 const TYPES = [
     { id: 0, color: '#ff4d4d', shape: [[1,1],[1,1]] },
     { id: 1, color: '#4bc0c0', shape: [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]] },
-    { id: 2, color: '#36a2eb', shape: [[0,1,0],[1,1,1],[0,0,0]] }, 
+    { id: 2, color: '#36a2eb', shape: [[0,1,0],[1,1,1],[0,0,0]] }, // Tブロック
     { id: 3, color: '#ff9f40', shape: [[1,0,0],[1,1,1],[0,0,0]] },
     { id: 4, color: '#ffcd56', shape: [[0,0,1],[1,1,1],[0,0,0]] },
     { id: 5, color: '#4bc0c0', shape: [[1,1,0],[0,1,1],[0,0,0]] },
@@ -154,6 +163,7 @@ function initNextQueue() {
 
 function spawnPiece() {
     canHold = true;
+    lastActionIsRotate = false;
     if (nextQueue.length === 0) initNextQueue();
     let nextType = nextQueue.shift();
     let randIndex = Math.floor(Math.random() * TYPES.length);
@@ -170,6 +180,11 @@ function setNewPiece(typeData) {
 
     if (checkCollision(pX, pY, currentPiece)) {
         alert("ゲームオーバー！ 消したライン数: " + linesCleared);
+        if (linesCleared > highScore) {
+            highScore = linesCleared;
+            localStorage.setItem('tetris_high_score', highScore);
+            document.getElementById('high-score').textContent = highScore;
+        }
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 stage[r][c] = 0;
@@ -180,7 +195,7 @@ function setNewPiece(typeData) {
         holdPiece = null; 
         holdColor = '';
         holdBlockId = null;
-        tetrisTextTimer = 0;
+        textTimer = 0;
         document.getElementById('lines-count').textContent = linesCleared;
         document.getElementById('speed-level').textContent = "1.00x";
         if (isPaused) togglePause();
@@ -221,17 +236,23 @@ function handleHold() {
         setNewPiece(savedType);
     }
     canHold = false;
+    lastActionIsRotate = false;
     drawHold();
     draw();
 }
 
-function handleRotate() {
+// 💡 【新機能】右回転（dir=1）と左回転（dir=-1）の処理
+function handleRotate(dir) {
     let n = currentPiece.length;
     let rotated = [];
-    for (let i = 0; i < n; i++) {
-        rotated[i] = [];
-        for (let j = 0; j < currentPiece[i].length; j++) {
-            rotated[i][j] = currentPiece[n - 1 - j][i];
+    for (let r = 0; r < n; r++) {
+        rotated[r] = [];
+        for (let c = 0; c < n; c++) {
+            if (dir === 1) {
+                rotated[r][c] = currentPiece[n - 1 - c][r]; // 右回転
+            } else {
+                rotated[r][c] = currentPiece[c][n - 1 - r]; // 左回転
+            }
         }
     }
     const kickOffsets = [[0, 0], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [0, -2], [-2, 0], [2, 0]];
@@ -242,10 +263,30 @@ function handleRotate() {
             pX += dx;
             pY += dy;
             currentPiece = rotated;
+            lastActionIsRotate = true; // 回転が成功した記録
             return true;
         }
     }
     return false;
+}
+
+// 💡 【新機能】T-SPIN（T型ブロックが四方を囲まれた狭い隙間で回転したか）を判定する関数
+function checkTSpin() {
+    if (currentBlockId !== 2 || !lastActionIsRotate) return false;
+    // Tブロックの中心座標
+    let cx = pX + 1;
+    let cy = pY + 1;
+    // Tブロックの4隅の状態をチェック（壁かブロックがあればカウント）
+    let corners = 0;
+    const checkCoords = [[cx-1, cy-1], [cx+1, cy-1], [cx-1, cy+1], [cx+1, cy+1]];
+    for (let i=0; i<checkCoords.length; i++) {
+        let tx = checkCoords[i][0];
+        let ty = checkCoords[i][1];
+        if (tx < 0 || tx >= COLS || ty >= ROWS) { corners++; }
+        else if (ty >= 0 && stage[ty][tx]) { corners++; }
+    }
+    // 4隅のうち3隅以上が埋まっていればT-SPIN成立！
+    return corners >= 3;
 }
 
 function drawHold() {
@@ -309,15 +350,20 @@ function draw() {
         }
     }
     
-    if (tetrisTextTimer > 0) {
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)'; 
-        ctx.font = 'bold 36px sans-serif';
+    // 💡 【機能拡張】T-SPINとTETRISの文字表示分け
+    if (textTimer > 0) {
+        if (specialText === "T-SPIN!") {
+            ctx.fillStyle = 'rgba(255, 71, 87, 0.9)'; // Tスピンは鮮やかなマゼンタピンク色
+        } else {
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.9)'; // テトリスはゴールド
+        }
+        ctx.font = 'bold 34px sans-serif';
         ctx.textAlign = 'center';
         ctx.shadowColor = 'black';
         ctx.shadowBlur = 4;
-        ctx.fillText('TETRIS!', canvas.width / 2, canvas.height / 2);
+        ctx.fillText(specialText, canvas.width / 2, canvas.height / 2);
         ctx.shadowBlur = 0;
-        tetrisTextTimer--;
+        textTimer--;
     }
 
     if (isPaused) {
@@ -345,6 +391,9 @@ function checkCollision(nextX, nextY, nextPiece) {
 }
 
 function lockPiece() {
+    // 固定する前にTスピンの条件を満たしているかチェック
+    let isTSpin = checkTSpin();
+
     for (let r = 0; r < currentPiece.length; r++) {
         for (let c = 0; c < currentPiece[r].length; c++) {
             if (currentPiece[r][c]) {
@@ -368,16 +417,33 @@ function lockPiece() {
         }
     }
     
+    // 💡 【機能追加】T-SPINが決まったら減速効果発動！
+    if (isTSpin) {
+        specialText = "T-SPIN!";
+        textTimer = 3;
+        currentInterval = currentInterval * 1.1; // 10%減速
+        if (currentInterval > 1000) currentInterval = 1000;
+    }
+
     if (cleared > 0) {
         let oldLines = linesCleared;
         linesCleared += cleared;
         document.getElementById('lines-count').textContent = linesCleared;
         
+        // リアルタイムハイスコア更新
+        if (linesCleared > highScore) {
+            highScore = linesCleared;
+            localStorage.setItem('tetris_high_score', highScore);
+            document.getElementById('high-score').textContent = highScore;
+        }
+
         if (cleared === 4) {
-            tetrisTextTimer = 3; 
+            specialText = "TETRIS!";
+            textTimer = 3; 
             currentInterval = currentInterval * 1.1;
             if (currentInterval > 1000) currentInterval = 1000;
-        } else {
+        } else if (!isTSpin) {
+            // 通常の消去（かつTスピンではない場合）のみ6ラインごと加速
             let oldLevel = Math.floor(oldLines / 6);
             let newLevel = Math.floor(linesCleared / 6);
             if (newLevel > oldLevel) {
@@ -387,11 +453,11 @@ function lockPiece() {
                 }
             }
         }
-        
-        updateTimer();
-        let speedMultiplier = (1000 / currentInterval).toFixed(2);
-        document.getElementById('speed-level').textContent = speedMultiplier + "x";
     }
+    
+    updateTimer();
+    let speedMultiplier = (1000 / currentInterval).toFixed(2);
+    document.getElementById('speed-level').textContent = speedMultiplier + "x";
 }
 
 function updateTimer() {
@@ -417,6 +483,7 @@ function drop() {
     if (isPaused) return;
     if (!checkCollision(pX, pY + 1, currentPiece)) {
         pY++;
+        lastActionIsRotate = false; // 下に落ちたら回転直後ではなくなる
     } else {
         lockPiece();
         spawnPiece();
@@ -426,87 +493,88 @@ function drop() {
 
 pauseButton.addEventListener('click', togglePause);
 
+// ⌨️ PC用のキーボード操作（Zキーで左回転、Xキーで右回転）
 window.addEventListener('keydown', e => {
     if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
     if (isPaused || !currentPiece) return;
     
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'z', 'Z', 'x', 'X'].includes(e.key)) {
         e.preventDefault();
     }
 
     if (e.key === ' ' || e.code === 'Space') { handleHold(); draw(); return; }
-    if (e.key === 'ArrowLeft' && !checkCollision(pX - 1, pY, currentPiece)) pX--;
-    if (e.key === 'ArrowRight' && !checkCollision(pX + 1, pY, currentPiece)) pX++;
-    if (e.key === 'ArrowDown' && !checkCollision(pX, pY + 1, currentPiece)) pY++;
-    if (e.key === 'ArrowUp') { handleRotate(); }
+    if (e.key === 'ArrowLeft' && !checkCollision(pX - 1, pY, currentPiece)) { pX--; lastActionIsRotate = false; }
+    if (e.key === 'ArrowRight' && !checkCollision(pX + 1, pY, currentPiece)) { pX++; lastActionIsRotate = false; }
+    if (e.key === 'ArrowDown' && !checkCollision(pX, pY + 1, currentPiece)) { pY++; lastActionIsRotate = false; }
+    if (e.key === 'z' || e.key === 'Z') { handleRotate(-1); } // 左回転
+    if (e.key === 'x' || e.key === 'X' || e.key === 'ArrowUp') { handleRotate(1); }  // 右回転
     draw();
 });
 
-// 📱 スマホ用ボタン登録関数（タップ用）
-function setupMobileButton(id, action) {
-    const btn = document.getElementById(id);
-    btn.addEventListener('touchstart', (e) => {
-        e.preventDefault(); 
-        if (isPaused || !currentPiece) return;
-        action();
-        draw();
-    });
-    btn.addEventListener('mousedown', (e) => {
-        if (isPaused || !currentPiece) return;
-        action();
-        draw();
-    });
-}
+// 💡 【大改造】左右移動・落下を「押しっぱなし（長押し）」で高速連打する共通システム
+let moveTimers = {};
 
-// 💡 【大修正】下ボタン（急降下）だけ、長押ししている間50ミリ秒（0.05秒）ごとに連続落下するシステム
-let downInterval = null;
-const downBtn = document.getElementById('btn-down');
-
-function startSoftDrop() {
+function startLoopAction(actionId, actionFn, speed = 80) {
     if (isPaused || !currentPiece) return;
-    if (downInterval) return; // 既にタイマーが動いてたら何もしない
+    if (moveTimers[actionId]) return;
     
-    // 押した瞬間に1マス落とす
-    if (!checkCollision(pX, pY + 1, currentPiece)) pY++;
+    actionFn(); // まず1回即座に動かす
     draw();
     
-    // その後、押しっぱなしにされている間、超高速（0.05秒ごと）で落とし続ける
-    downInterval = setInterval(() => {
-        if (isPaused || !currentPiece) { stopSoftDrop(); return; }
-        if (!checkCollision(pX, pY + 1, currentPiece)) {
-            pY++;
-        } else {
-            // 地面についたら自動で止める
-            lockPiece();
-            spawnPiece();
-            stopSoftDrop();
-        }
+    // その後、長押しされている間ずっと繰り返し実行
+    moveTimers[actionId] = setInterval(() => {
+        if (isPaused || !currentPiece) { stopLoopAction(actionId); return; }
+        actionFn();
         draw();
-    }, 50); 
+    }, speed);
 }
 
-function stopSoftDrop() {
-    if (downInterval) {
-        clearInterval(downInterval);
-        downInterval = null;
+function stopLoopAction(actionId) {
+    if (moveTimers[actionId]) {
+        clearInterval(moveTimers[actionId]);
+        delete moveTimers[actionId];
     }
 }
 
-// スマホの「指を置いたとき」「指を離したとき」のイベントを設定
-downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startSoftDrop(); });
-downBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopSoftDrop(); });
-downBtn.addEventListener('touchcancel', (e) => { e.preventDefault(); stopSoftDrop(); });
+// 📱 スマホ＆マウスの押しっぱなしイベントを紐付け
+function bindLongPressButton(elementId, actionFn, speed = 80) {
+    const btn = document.getElementById(elementId);
+    
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startLoopAction(elementId, actionFn, speed); });
+    btn.addEventListener('touchend', (e) => { e.preventDefault(); stopLoopAction(elementId); });
+    btn.addEventListener('touchcancel', (e) => { e.preventDefault(); stopLoopAction(elementId); });
+    
+    btn.addEventListener('mousedown', () => { startLoopAction(elementId, actionFn, speed); });
+    btn.addEventListener('mouseup', () => { stopLoopAction(elementId); });
+    btn.addEventListener('mouseleave', () => { stopLoopAction(elementId); });
+}
 
-// PCでの動作テスト用にマウスの「クリックしたとき」「離したとき」も設定
-downBtn.addEventListener('mousedown', (e) => { startSoftDrop(); });
-downBtn.addEventListener('mouseup', (e) => { stopSoftDrop(); });
-downBtn.addEventListener('mouseleave', (e) => { stopSoftDrop(); });
+// 左右ボタンに長押しシステムを適用（滑らかに動くよう間隔を80ミリ秒に設定）
+bindLongPressButton('btn-left', () => { if (!checkCollision(pX - 1, pY, currentPiece)) { pX--; lastActionIsRotate = false; } });
+bindLongPressButton('btn-right', () => { if (!checkCollision(pX + 1, pY, currentPiece)) { pX++; lastActionIsRotate = false; } });
 
+// 急降下ボタンは超高速（50ミリ秒）で落ちるように適用
+bindLongPressButton('btn-down', () => {
+    if (!checkCollision(pX, pY + 1, currentPiece)) {
+        pY++;
+        lastActionIsRotate = false;
+    } else {
+        lockPiece();
+        spawnPiece();
+        stopLoopAction('btn-down');
+    }
+}, 50);
 
-setupMobileButton('btn-left', () => { if (!checkCollision(pX - 1, pY, currentPiece)) pX--; });
-setupMobileButton('btn-right', () => { if (!checkCollision(pX + 1, pY, currentPiece)) pX++; });
-setupMobileButton('btn-up', () => { handleRotate(); });
-setupMobileButton('btn-hold', () => { handleHold(); });
+// タップ（1回押し）で良い回転・HOLDボタンの登録
+function setupTapButton(id, action) {
+    const btn = document.getElementById(id);
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); if (isPaused || !currentPiece) return; action(); draw(); });
+    btn.addEventListener('mousedown', () => { if (isPaused || !currentPiece) return; action(); draw(); });
+}
+
+setupTapButton('btn-rot-l', () => { handleRotate(-1); }); // 左回転
+setupTapButton('btn-rot-r', () => { handleRotate(1);  }); // 右回転
+setupTapButton('btn-hold',  () => { handleHold();     });
 
 initNextQueue();
 spawnPiece();
