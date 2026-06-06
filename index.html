@@ -4,102 +4,115 @@ HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>テトリス（プロ配列＆テクニカル記録版）</title>
+    <title>テトリス（画面密着＆上部ハイスコア版）</title>
     <style>
         body { 
             background: #222; color: white; text-align: center; font-family: sans-serif; 
-            margin: 0; padding: 10px; user-select: none; -webkit-user-select: none;
+            margin: 0; padding: 5px; user-select: none; -webkit-user-select: none;
         }
-        h1 { font-size: 20px; margin: 5px 0; }
-        .instructions { font-size: 11px; color: #aaa; margin: 0 0 10px 0; }
+        h1 { font-size: 18px; margin: 2px 0; }
         
-        .game-container { display: flex; justify-content: center; align-items: flex-start; position: relative; }
+        /* 🏆 画面上部の最高記録（横並び） */
+        .highscore-header {
+            display: flex; justify-content: center; gap: 10px;
+            background: #111; border: 1px solid #ffcd56; border-radius: 5px;
+            padding: 3px 5px; max-width: 410px; margin: 0 auto 5px auto; font-size: 11px;
+        }
+        .hs-item { color: #ffcd56; font-weight: bold; }
+        .hs-val { color: #fff; }
+
+        /* 🖥️ ゲーム画面エリア（無駄な隙間を徹底排除） */
+        .game-container { display: flex; justify-content: center; align-items: flex-start; margin-bottom: 0; }
         canvas { background: #111; border: 3px solid #fff; max-width: 100%; height: auto; }
         
-        .side-panel { margin: 0 8px; text-align: left; background: #333; padding: 10px; border-radius: 5px; width: 85px; }
-        .info-title { font-size: 11px; color: #aaa; margin-bottom: 2px; }
-        .info-value { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 8px; }
-        .info-value.highscore { color: #ffcd56; } 
-        .sub-canvas { background: #111; border: 2px solid #fff; margin-bottom: 8px; width: 100%; height: auto; }
-        .pause-btn { width: 100%; padding: 5px; font-size: 12px; font-weight: bold; background-color: #36a2eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        /* 左右パネル */
+        .side-panel { margin: 0 5px; text-align: left; background: #333; padding: 6px; border-radius: 5px; width: 85px; }
+        .info-title { font-size: 11px; color: #aaa; margin-bottom: 1px; }
+        .info-value { font-size: 14px; font-weight: bold; color: #ff4757; margin-bottom: 6px; }
+        .sub-canvas { background: #111; border: 2px solid #fff; margin-bottom: 4px; width: 100%; height: auto; }
+        .pause-btn { width: 100%; padding: 4px; font-size: 11px; font-weight: bold; background-color: #36a2eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
 
-        /* 📱 スマホ用ボタン新レイアウト（ご指定の配置を完全再現） */
+        /* 📱 スマホ用コントローラー（画面のすぐ下に配置されるようマージンを最小に） */
         .controller { 
             display: grid; 
-            grid-template-columns: 1fr 1fr 1fr; /* 3列構成 */
-            gap: 10px; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 8px; 
             max-width: 360px; 
-            margin: 15px auto 0 auto; 
+            margin: 5px auto 0 auto; /* 5pxまで縮めて画面と密着 */
             padding: 0 5px;
         }
         .btn { 
-            background: #444; color: white; border: none; padding: 15px 0; 
-            font-size: 16px; font-weight: bold; border-radius: 10px; 
+            background: #444; color: white; border: none; padding: 14px 0; 
+            font-size: 15px; font-weight: bold; border-radius: 10px; 
             box-shadow: 0 4px #222; cursor: pointer; -webkit-tap-highlight-color: transparent;
         }
         .btn:active { background: #666; transform: translateY(2px); box-shadow: 0 2px #222; }
         
-        /* 特殊ボタンの色分け */
         .btn-move { background: #3a3a3a; }
-        .btn-hold { background: #ff9f40; grid-row: span 1; height: 100%; } /* 移動の間に配置 */
+        .btn-hold { background: #ff9f40; } 
         .btn-rot-l { background: #2ed573; }
         .btn-rot-r { background: #9966ff; }
-        .btn-down { background: #555; grid-column: span 3; padding: 12px 0; font-size: 16px; }
+        .btn-down { background: #555; grid-column: span 3; padding: 12px 0; font-size: 15px; }
         
-        /* 空白を埋めるためのダミー要素 */
         .empty-space { pointer-events: none; }
 
         @media (min-width: 600px) {
-            h1 { font-size: 26px; }
-            .instructions { font-size: 13px; }
-            .side-panel { width: 130px; padding: 12px; }
-            .info-title { font-size: 14px; }
-            .info-value { font-size: 20px; }
-            .controller { max-width: 450px; }
+            h1 { font-size: 24px; }
+            .highscore-header { font-size: 14px; padding: 5px 10px; margin-bottom: 10px; }
+            .side-panel { width: 120px; padding: 10px; }
+            .info-title { font-size: 13px; }
+            .info-value { font-size: 18px; }
+            .controller { max-width: 420px; margin-top: 10px; }
+            .btn { padding: 18px 0; }
         }
     </style>
 </head>
 <body>
 
     <h1>TETRIS TECHNICAL</h1>
-    <p class="instructions">PC: ←→移動 / ↓落下 / Z左回転 / X右回転 / [Space]HOLD / [P]ポーズ</p>
+    
+    <!-- 🏆 画面上部に引っ越した最高記録 -->
+    <div class="highscore-header">
+        <div>👑 最高記録 ➔</div>
+        <div class="hs-item">ライン: <span class="hs-val" id="high-score">0</span></div>
+        <div class="hs-item">テトリス: <span class="hs-val" id="high-tetris">0</span></div>
+        <div class="hs-item">T-SPIN: <span class="hs-val" id="high-tspin">0</span></div>
+    </div>
     
     <div class="game-container">
-        <!-- 左側パネル（最高記録、HOLD） -->
+        <!-- 👈 左側パネル（ご指定通り：HOLD と スピード のみ） -->
         <div class="side-panel">
             <div class="info-title">HOLD</div>
             <canvas id="hold-canvas" class="sub-canvas" width="100" height="100"></canvas>
             
-            <div style="border-top: 1px solid #555; margin-top: 10px; padding-top: 5px;">
-                <div class="info-title">★最高記録★</div>
-                <div class="info-title">ライン</div>
-                <div class="info-value highscore" id="high-score">0</div>
-                <div class="info-title">テトリス</div>
-                <div class="info-value highscore" id="high-tetris">0</div>
-                <div class="info-title">T-SPIN</div>
-                <div class="info-value highscore" id="high-tspin">0</div>
+            <div style="margin-top: 20px;">
+                <div class="info-title">スピード</div>
+                <div class="info-value" id="speed-level" style="color: #ffcd56;">1.00x</div>
             </div>
         </div>
 
+        <!-- 🕹️ メイン画面 -->
         <canvas id="canvas" width="240" height="400"></canvas>
         
-        <!-- 右側パネル（現在のスコア、NEXT） -->
+        <!-- 👉 右側パネル（NEXT、ライン、テトリス数、T-SPIN数、ポーズ） -->
         <div class="side-panel">
-            <div class="info-title">ライン</div>
-            <div class="info-value" id="lines-count">0</div>
-            <div class="info-title">テトリス数</div>
-            <div class="info-value" id="tetris-count" style="color: #ffcd56;">0</div>
-            <div class="info-title">T-SPIN数</div>
-            <div class="info-value" id="tspin-count" style="color: #2ed573;">0</div>
-            <div class="info-title">スピード</div>
-            <div class="info-value" id="speed-level">1.00x</div>
             <div class="info-title">NEXT</div>
             <canvas id="next-canvas" class="sub-canvas" width="100" height="360"></canvas>
+            
+            <div class="info-title">ライン</div>
+            <div class="info-value" id="lines-count">0</div>
+            
+            <div class="info-title">テトリス数</div>
+            <div class="info-value" id="tetris-count" style="color: #ffcd56;">0</div>
+            
+            <div class="info-title">T-SPIN数</div>
+            <div class="info-value" id="tspin-count" style="color: #2ed573;">0</div>
+            
             <button id="pause-button" class="pause-btn">ポーズ</button>
         </div>
     </div>
 
-    <!-- 📱 ご指定通りの配置に美しく整列させたコントローラー -->
+    <!-- 📱 画面のすぐ近くに配置されたコントローラー -->
     <div class="controller">
         <!-- 1段目: [← 移動] [HOLD] [移動 →] -->
         <button class="btn btn-move" id="btn-left">← 移動</button>
@@ -108,10 +121,10 @@ HTML
         
         <!-- 2段目: [↺ 左回転] [（間は空白）] [↻ 右回転] -->
         <button class="btn btn-rot-l" id="btn-rot-l">↺ 左回転</button>
-        <div class="empty-space"></div> <!-- HOLDの下にあたる中央の空白 -->
+        <div class="empty-space"></div> 
         <button class="btn btn-rot-r" id="btn-rot-r">↻ 右回転</button>
         
-        <!-- 3段目: [長押し急降下]（全列ぶち抜き） -->
+        <!-- 3段目: [長押し急降下] -->
         <button class="btn btn-down" id="btn-down">長押しで急降下 👇</button>
     </div>
 
@@ -131,17 +144,13 @@ const ROWS = 20;
 let stage = [];
 for (let r = 0; r < ROWS; r++) {
     stage[r] = [];
-    for (let c = 0; c < COLS; c++) {
-        stage[r][c] = 0;
-    }
+    for (let c = 0; c < COLS; c++) stage[r][c] = 0;
 }
 
-// 現在のカウント
 let linesCleared = 0;
 let tetrisCount = 0;
 let tspinCount = 0;
 
-// ローカルストレージから最高記録を読み込み
 let highScore = localStorage.getItem('tetris_high_score') ? parseInt(localStorage.getItem('tetris_high_score')) : 0;
 let highTetris = localStorage.getItem('tetris_high_tetris') ? parseInt(localStorage.getItem('tetris_high_tetris')) : 0;
 let highTspin = localStorage.getItem('tetris_high_tspin') ? parseInt(localStorage.getItem('tetris_high_tspin')) : 0;
@@ -187,9 +196,7 @@ function copyGrid(grid) {
     let newGrid = [];
     for (let i = 0; i < grid.length; i++) {
         newGrid[i] = [];
-        for (let j = 0; j < grid[i].length; j++) {
-            newGrid[i][j] = grid[i][j];
-        }
+        for (let j = 0; j < grid[i].length; j++) newGrid[i][j] = grid[i][j];
     }
     return newGrid;
 }
@@ -212,7 +219,6 @@ function spawnPiece() {
     setNewPiece(nextType);
 }
 
-// 💾 最高記録をチェックしてセーブする関数
 function checkAndSaveHighScores() {
     if (linesCleared > highScore) {
         highScore = linesCleared;
@@ -240,16 +246,11 @@ function setNewPiece(typeData) {
 
     if (checkCollision(pX, pY, currentPiece)) {
         alert("ゲームオーバー！\n消したライン: " + linesCleared + "\nテトリス数: " + tetrisCount + "\nT-SPIN数: " + tspinCount);
-        
         checkAndSaveHighScores();
-
-        // リセット処理
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) stage[r][c] = 0;
         }
-        linesCleared = 0;
-        tetrisCount = 0;
-        tspinCount = 0;
+        linesCleared = 0; tetrisCount = 0; tspinCount = 0;
         currentInterval = 1000;
         holdPiece = null; holdColor = ''; holdBlockId = null;
         textTimer = 0;
@@ -258,12 +259,9 @@ function setNewPiece(typeData) {
         document.getElementById('tspin-count').textContent = 0;
         document.getElementById('speed-level').textContent = "1.00x";
         if (isPaused) togglePause();
-        updateTimer();
-        initNextQueue();
-        spawnPiece();
+        updateTimer(); initNextQueue(); spawnPiece();
     }
-    drawNext();
-    drawHold();
+    drawNext(); drawHold();
 }
 
 function handleHold() {
@@ -288,10 +286,8 @@ function handleHold() {
         }
         setNewPiece(savedType);
     }
-    canHold = false;
-    lastActionIsRotate = false;
-    drawHold();
-    draw();
+    canHold = false; lastActionIsRotate = false;
+    drawHold(); draw();
 }
 
 function handleRotate(dir) {
@@ -309,8 +305,7 @@ function handleRotate(dir) {
         let dx = kickOffsets[i][0];
         let dy = kickOffsets[i][1];
         if (!checkCollision(pX + dx, pY + dy, rotated)) {
-            pX += dx;
-            pY += dy;
+            pX += dx; pY += dy;
             currentPiece = rotated;
             lastActionIsRotate = true; 
             return true;
@@ -321,15 +316,13 @@ function handleRotate(dir) {
 
 function checkTSpin() {
     if (currentBlockId !== 2 || !lastActionIsRotate) return false;
-    let cx = pX + 1;
-    let cy = pY + 1;
+    let cx = pX + 1; let cy = pY + 1;
     let corners = 0;
     const checkCoords = [[cx-1, cy-1], [cx+1, cy-1], [cx-1, cy+1], [cx+1, cy+1]];
     for (let i=0; i<checkCoords.length; i++) {
-        let tx = checkCoords[i][0];
-        let ty = checkCoords[i][1];
-        if (tx < 0 || tx >= COLS || ty >= ROWS) { corners++; }
-        else if (ty >= 0 && stage[ty][tx]) { corners++; }
+        let tx = checkCoords[i][0]; let ty = checkCoords[i][1];
+        if (tx < 0 || tx >= COLS || ty >= ROWS) corners++;
+        else if (ty >= 0 && stage[ty][tx]) corners++;
     }
     return corners >= 3;
 }
@@ -421,8 +414,7 @@ function checkCollision(nextX, nextY, nextPiece) {
     for (let r = 0; r < nextPiece.length; r++) {
         for (let c = 0; c < nextPiece[r].length; c++) {
             if (nextPiece[r][c]) {
-                let targetX = nextX + c;
-                let targetY = nextY + r;
+                let targetX = nextX + c; let targetY = nextY + r;
                 if (targetX < 0 || targetX >= COLS || targetY >= ROWS) return true;
                 if (targetY >= 0 && stage[targetY][targetX]) return true;
             }
@@ -452,19 +444,14 @@ function lockPiece() {
             let emptyRow = [];
             for (let c = 0; c < COLS; c++) emptyRow.push(0);
             stage.unshift(emptyRow);
-            cleared++;
-            r++; 
+            cleared++; r++; 
         }
     }
     
-    // 💡 T-SPIN判定時の処理（減速10% ＆ カウント追加）
     if (isTSpin) {
-        specialText = "T-SPIN!";
-        textTimer = 3;
-        tspinCount++;
+        specialText = "T-SPIN!"; textTimer = 3; tspinCount++;
         document.getElementById('tspin-count').textContent = tspinCount;
-        
-        currentInterval = currentInterval * 1.1; // 10%減速
+        currentInterval = currentInterval * 1.1;
         if (currentInterval > 1000) currentInterval = 1000;
     }
 
@@ -474,29 +461,21 @@ function lockPiece() {
         document.getElementById('lines-count').textContent = linesCleared;
         
         if (cleared === 4) {
-            specialText = "TETRIS!";
-            textTimer = 3; 
-            tetrisCount++;
+            specialText = "TETRIS!"; textTimer = 3; tetrisCount++;
             document.getElementById('tetris-count').textContent = tetrisCount;
-            
-            currentInterval = currentInterval * 1.1; // 10%減速
+            currentInterval = currentInterval * 1.1;
             if (currentInterval > 1000) currentInterval = 1000;
         } else if (!isTSpin) {
-            // 通常消去のときだけ6ラインごとに加速
             let oldLevel = Math.floor(oldLines / 6);
             let newLevel = Math.floor(linesCleared / 6);
             if (newLevel > oldLevel) {
                 let levelsIncreased = newLevel - oldLevel;
-                for (let i = 0; i < levelsIncreased; i++) {
-                    currentInterval = currentInterval / 1.1;
-                }
+                for (let i = 0; i < levelsIncreased; i++) currentInterval = currentInterval / 1.1;
             }
         }
     }
     
-    // プレイ中もリアルタイムでハイスコアをチェック
     checkAndSaveHighScores();
-
     updateTimer();
     let speedMultiplier = (1000 / currentInterval).toFixed(2);
     document.getElementById('speed-level').textContent = speedMultiplier + "x";
@@ -517,11 +496,9 @@ function togglePause() {
 function drop() {
     if (isPaused) return;
     if (!checkCollision(pX, pY + 1, currentPiece)) {
-        pY++;
-        lastActionIsRotate = false;
+        pY++; lastActionIsRotate = false;
     } else {
-        lockPiece();
-        spawnPiece();
+        lockPiece(); spawnPiece();
     }
     draw();
 }
@@ -542,7 +519,6 @@ window.addEventListener('keydown', e => {
     draw();
 });
 
-// 長押し連打システム
 let moveTimers = {};
 function startLoopAction(actionId, actionFn, speed = 80) {
     if (isPaused || !currentPiece) return;
@@ -582,10 +558,7 @@ setupTapButton('btn-rot-l', () => { handleRotate(-1); });
 setupTapButton('btn-rot-r', () => { handleRotate(1);  });
 setupTapButton('btn-hold',  () => { handleHold();     });
 
-initNextQueue();
-spawnPiece();
-updateTimer();
-draw();
+initNextQueue(); spawnPiece(); updateTimer(); draw();
 </script>
 </body>
 </html>
