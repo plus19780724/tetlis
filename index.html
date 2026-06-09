@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>テトリス（ガイド機能付き版）</title>
+    <title>テトリス（T-SPINライン消去限定版）</title>
     <style>
         body { 
             background: #222; color: white; text-align: center; font-family: sans-serif; 
@@ -334,12 +334,12 @@ function drawNext() {
 }
 
 function drawSquare(x, y, color, opacity = 1.0) {
-    ctx.globalAlpha = opacity; // 透明度を設定
+    ctx.globalAlpha = opacity;
     ctx.fillStyle = color;
     ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
     ctx.strokeStyle = '#222';
     ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-    ctx.globalAlpha = 1.0; // 元に戻す
+    ctx.globalAlpha = 1.0;
 }
 
 function draw() {
@@ -349,20 +349,13 @@ function draw() {
     }
     
     if (currentPiece) {
-        // 💡 【新機能】ゴースト（予測位置）ブロックの描画
         let ghostY = pY;
-        // どこまで落ちるかシミュレーション
-        while (!checkCollision(pX, ghostY + 1, currentPiece)) {
-            ghostY++;
-        }
-        // 透明度0.3で影を描画
+        while (!checkCollision(pX, ghostY + 1, currentPiece)) { ghostY++; }
         for (let r = 0; r < currentPiece.length; r++) {
             for (let c = 0; c < currentPiece[r].length; c++) {
                 if (currentPiece[r][c]) drawSquare(pX + c, ghostY + r, currentColor, 0.3);
             }
         }
-
-        // 通常の操作ブロックの描画
         for (let r = 0; r < currentPiece.length; r++) {
             for (let c = 0; c < currentPiece[r].length; c++) {
                 if (currentPiece[r][c]) drawSquare(pX + c, pY + r, currentColor);
@@ -418,12 +411,15 @@ function lockPiece() {
             cleared++; r++; 
         }
     }
-    if (isTSpin) {
+    
+    // 💡 【修正箇所】T-SPINが成立、かつ「1ライン以上消えた（cleared > 0）」時だけエフェクトと加算を行う
+    if (isTSpin && cleared > 0) {
         specialText = "T-SPIN!"; textTimer = 3; tspinCount++;
         document.getElementById('tspin-count').textContent = tspinCount;
         currentInterval = currentInterval * 1.1;
         if (currentInterval > 1000) currentInterval = 1000;
     }
+
     if (cleared > 0) {
         let oldLines = linesCleared; linesCleared += cleared;
         document.getElementById('lines-count').textContent = linesCleared;
